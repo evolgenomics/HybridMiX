@@ -1,0 +1,91 @@
+<html>
+
+<head>
+<title>6-TG Killing Curve Analysis</title>
+</head>
+
+<body>
+
+<p>This is an R HTML document. When you click the <b>Knit HTML</b> button a web page will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:</p>
+
+<!--begin.rcode
+setwd("~/Dropbox/MS12_HybridMiX/")
+data<-read.table("6-TG_killing_curves_data.txt", sep="\t", header=TRUE)
+str(data)
+data_Blank_minus<-data
+blank<-0.3
+barwidth<-0.5
+data_Blank_minus[,1]<-data_Blank_minus[,1]-blank
+boxplot(data[,1], data_Blank_minus[,1])
+dataS<-split(data_Blank_minus, f=sprintf("%s-%s", data_Blank_minus$Cells, data_Blank_minus$Time))
+
+colgeno<-c("#888888FF", "#888888FF", "#888888FF", "#BBBBBBFF", "#2581BCFF","#2581BCFF","#2581BCFF","#C33A2BFF","#C33A2BFF","#C33A2BFF")
+colgeno_lines<-c("#88888877", "#88888877", "#88888877", "#BBBBBB77", "#2581BC77","#2581BC77","#2581BC77","#C33A2B77","#C33A2B77","#C33A2B77")
+groups<-c(0,0,0,4,1,1,1,2,2,2)
+groups<-c(0,0,0,0,0,0,0,0,0,0)
+plot_groups<-list(c(1,5,8), c(2, 6, 9), c(3, 7, 10))
+names(plot_groups)<-c("24h","48h", "72h")
+
+for (g in 1:length(plot_groups)) {
+  #g<-plot_groups[[3]]
+  #g<-1
+  plot_conc<-curData[[3]]$X6_TG
+  plot_name<-paste("SuppFig_6TG_KillCurve_", names(plot_groups)[g], sep="")
+  pdf(paste(plot_name, ".pdf", sep=""),width=4, height=4.2, paper="A4")
+  plot(sqrt(c(0,200)),c(0,1.5), type="n", xlab="6TG Concentration (nM)", ylab="Normalized cell survival",xaxt="n",main=plot_name,yaxt="n")
+  axis(side=1, at=sqrt(curData[[3]]$X6_TG[1:(nrow(curData[[3]])-1)]), labels=c(curData[[3]]$X6_TG[1:(nrow(curData[[3]])-1)]), las=1)
+  axis(side=1, at=0, labels="Control", las=2)
+  axis(side=2, at=seq(0,1.5,0.5), labels=seq(0,1.5,0.5), las=2)
+  for (d in plot_groups[[g]]) {
+    #d<-3
+    curData<-split(dataS[[d]], dataS[[d]][2])
+    curData[[3]]<-curData[[1]]
+    curData[[3]]$Measurement<-rowMeans(cbind(curData[[1]]$Measurement, curData[[2]]$Measurement))
+    #Apply transformation to normalize the result to the Control row
+    controlRow<-which(curData[[3]]$X6_TG == 0)
+    curData[[3]]$Measurement<-unlist(lapply(curData[[3]]$Measurement, function (x) x / curData[[3]]$Measurement[controlRow]))
+    sdData<-apply(cbind(curData[[1]]$Measurement, curData[[2]]$Measurement), 1, function(x) sd(x) )
+    
+    points(sqrt(plot_conc+groups[d]), curData[[3]]$Measurement, pch=16, col=colgeno[d])
+    lines(sqrt(plot_conc+groups[d]), curData[[3]]$Measurement, pch=16, col=colgeno_lines[d],lwd=2)
+    
+    for (p in 1:length(curData[[3]]$Measurement)) {
+      lines(rep(sqrt(plot_conc[p]+groups[d]),2), c(curData[[3]]$Measurement[p]+sdData[p],curData[[3]]$Measurement[p]-sdData[p]), col=colgeno_lines[d])
+      lines(c(sqrt(plot_conc[p]+groups[d])-barwidth, sqrt(plot_conc[p]+groups[d])+barwidth), rep(curData[[3]]$Measurement[p]+sdData[p],2), col=colgeno_lines[d])
+      lines(c(sqrt(plot_conc[p]+groups[d])-barwidth, sqrt(plot_conc[p]+groups[d])+barwidth), rep(curData[[3]]$Measurement[p]-sdData[p],2), col=colgeno_lines[d])
+    }
+
+  ######################## Categorical version
+  #    plot(c(1, length(curData[[3]]$Measurement)),c(0,2), type="n", xaxt="n")
+  #  points(seq(length(curData[[3]]$Measurement),1, -1), curData[[3]]$Measurement, pch=16)
+  #  axis(side=1, at=seq(length(curData[[3]]$Measurement),2,-1), labels=c(curData[[3]]$X6_TG[1:nrow(curData[[3]])-1]), las=1)
+  #  axis(side=1, at=1, labels=c("Control"), las=2)
+  #  for (p in 1:length(curData[[3]]$Measurement)) {
+  #    lines(rep(nrow(curData[[3]])-p+1,2), c(curData[[3]]$Measurement[p]+sdData[p],curData[[3]]$Measurement[p]-sdData[p]))
+  #    lines(c(nrow(curData[[3]])-p+1-barwidth, nrow(curData[[3]])-p+1+barwidth), rep(curData[[3]]$Measurement[p]+sdData[p],2))
+  #    lines(c(nrow(curData[[3]])-p+1-barwidth, nrow(curData[[3]])-p+1+barwidth), rep(curData[[3]]$Measurement[p]-sdData[p],2))
+  #  }
+  ########################
+  
+  
+  }
+  dev.off()
+  
+}
+
+dataSubS<-
+for (i in levels(data_Blank_minus$Cells)) {
+  plot_rows<-which(data_Blank_minus$Cells == i)
+  plot(data_Blank_minus$X6_TG, data_Blank_minus$Measurement, type="n", pch=16)
+  points(data_Blank_minus$X6_TG, data_Blank_minus$Measurement, pch=16)
+}
+end.rcode-->
+
+<p>You can also embed plots, for example:</p>
+
+<!--begin.rcode fig.width=7, fig.height=6
+plot(cars)
+end.rcode-->
+
+</body>
+</html>

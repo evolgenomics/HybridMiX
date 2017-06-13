@@ -1,0 +1,26 @@
+#!/bin/bash
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19; do
+for i in `perl -e 'foreach my $i (5..64) {print "$i "}'`
+do
+echo $i
+awk '/chr'$chr'/ && $4!~/,/ {split($'$i',a,","); ref=a[1]+a[2]; alt=a[3]+a[4]; if (ref + alt > 2 && ref + alt <= 5) {print “’$chr’\t”$2"\t"$3"\t"ref"\t"$4"\t"alt}}' PC004sub03b_samples.chr$chr.DP4.table >TIGER/PC004sub03b.f$i.chr$chr.TIGER.tmp
+awk '/chr'$chr'/ && $4!~/,/ {split($'$i',a,","); ref=a[1]+a[2]; alt=a[3]+a[4]; print “‘$chr’\t”$2"\t"$3"\t"ref"\t"$4"\t"alt}' PC004sub03b_samples.chr$chr.DP4.table >TIGER/PC004sub03b.f$i.complete.chr$chr.TIGER.tmp
+done;
+done
+
+
+for chr in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19; do
+for i in `perl -e 'foreach my $i (5..64) {print "$i "}'`
+do
+  java -jar /fml/chones/local/TIGER_Scripts-for-distribution/base_caller.jar -r input/PC004sub03b.f$i.chr$chr.TIGER.tmp -o input/f$i.allele_count.base_call.chr$chr.txt -n bi
+  java -jar /fml/chones/local/TIGER_Scripts-for-distribution/allele_freq_estimator.jar -r input/PC004sub03b.f$i.chr$chrTIGER.tmp -o input/f$i.frequencies_for_bmm.chr$chr.txt -n bi -w 1000
+  Rscript --vanilla /fml/chones/local/TIGER_Scripts-for-distribution/beta_mixture_model.R input/f$i.frequencies_for_bmm.txt input/f$i.bmm.intersections.txt
+  perl /fml/chones/local/TIGER_Scripts-for-distribution/prep_prob.pl -s f$i -m input/PC004sub03b.f$i.TIGER -b input/f$i.allele_count.base_call.txt -c sizes.txt -o input/f$i.file_for_probabilities.txt
+  perl /fml/chones/local/TIGER_Scripts-for-distribution/hmm_prob.pl -s input/f$i.frequencies_for_bmm.txt -p input/f$i.file_for_probabilities.txt -o input/f$i.sample -a input/f$i.bmm.intersections.txt -c sizes.txt
+  java -jar /fml/chones/local/TIGER_Scripts-for-distribution/hmm_play.jar -r input/f$i.allele_count.base_call.txt -o input/f$i.hmm.out.txt -t bi -z input/f$i.sample_hmm_model
+  perl /fml/chones/local/TIGER_Scripts-for-distribution/prepare_break.pl -s f$i -m input/PC004sub03b.f$i.TIGER  -b input/f$i.hmm.out.txt -c sizes.txt -o input/f$i.rough_COs.txt
+  perl /fml/chones/local/TIGER_Scripts-for-distribution/refine_recombination_break.pl input/PC004sub03b.f$i.complete.TIGER input/f$i.rough_COs.breaks.txt
+  perl /fml/chones/local/TIGER_Scripts-for-distribution/breaks_smoother.pl -b input/f$i.rough_COs.refined.breaks.txt -o input/f$i.corrected.refined.breaks.txt
+done;
+done
